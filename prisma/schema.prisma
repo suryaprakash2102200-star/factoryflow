@@ -1,0 +1,796 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum FieldType {
+  text
+  long_text
+  number
+  currency
+  date
+  datetime
+  dropdown
+  multi_select
+  boolean
+  formula
+  lookup
+  file
+}
+
+enum EntityType {
+  lead
+  contact
+  account
+  task
+}
+
+enum UserRole {
+  owner
+  admin
+  manager
+  agent
+  viewer
+}
+
+enum ActivityType {
+  call
+  email
+  meeting
+  visit
+  note
+  stage_change
+  assignment
+  other
+}
+
+enum TaskStatus {
+  open
+  in_progress
+  done
+  cancelled
+  overdue
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  critical
+}
+
+model Organization {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  slug           String   @unique
+  /// FactoryFlow module keys this workspace has switched on (see src/lib/modules.ts).
+  enabledModules String[] @default(["crm", "quotations", "orders", "production", "reports", "tasks", "invoices"])
+  createdAt      DateTime @default(now()) @db.Timestamptz
+
+  orders           Order[]
+  orderHistory     OrderStatusHistory[]
+  productionJobs   ProductionJob[]
+  jobUpdates       JobUpdate[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  attachments      Attachment[]
+  quoteRevisions   QuoteRevision[]
+  products         Product[]
+  machines         Machine[]
+  masterValues     MasterValue[]
+  users            User[]
+  leadStages       LeadStage[]
+  fieldDefinitions FieldDefinition[]
+  leads            Lead[]
+  contacts         Contact[]
+  accounts         Account[]
+  activities       Activity[]
+  notes            Note[]
+  stageHistory     StageHistory[]
+  tasks            Task[]
+  roles            Role[]
+  rolePermissions  RolePermission[]
+  quotes           Quote[]
+  invoices         Invoice[]
+
+  @@map("organizations")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  name        String
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  tenant      Organization     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  permissions RolePermission[]
+  users       User[]
+
+  @@unique([tenantId, name])
+  @@map("roles")
+}
+
+model RolePermission {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  roleId   String @db.Uuid
+  resource String
+  action   String
+
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role   Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, resource, action])
+  @@index([tenantId, roleId])
+  @@map("role_permissions")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  email        String
+  passwordHash String
+  fullName     String
+  role         UserRole @default(agent)
+  roleId       String?  @db.Uuid
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz
+
+  tenant         Organization         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customRole     Role?                @relation(fields: [roleId], references: [id])
+  ownedLeads     Lead[]               @relation("LeadOwner")
+  ownedContacts  Contact[]            @relation("ContactOwner")
+  ownedAccounts  Account[]            @relation("AccountOwner")
+  activities     Activity[]           @relation("ActivityCreatedBy")
+  assignedTasks  Task[]               @relation("TaskAssignee")
+  createdTasks   Task[]               @relation("TaskCreatedBy")
+  notes          Note[]               @relation("NoteCreatedBy")
+  stageChanges   StageHistory[]       @relation("StageHistoryChangedBy")
+  ownedQuotes    Quote[]              @relation("QuoteOwner")
+  ownedInvoices  Invoice[]            @relation("InvoiceOwner")
+  ownedOrders    Order[]              @relation("OrderOwner")
+  orderChanges   OrderStatusHistory[] @relation("OrderStatusChangedBy")
+  assignedJobs   ProductionJob[]      @relation("JobAssignee")
+  jobUpdates     JobUpdate[]          @relation("JobUpdateBy")
+  auditLogs      AuditLog[]           @relation("AuditActor")
+  notifications  Notification[]       @relation("NotificationUser")
+  attachments    Attachment[]         @relation("AttachmentUploader")
+  quoteRevisions QuoteRevision[]      @relation("QuoteRevisionBy")
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model LeadStage {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  pipelineId  String   @db.Uuid
+  name        String
+  orderIndex  Int
+  color       String?  @default("#64748b")
+  probability Int?     @default(0)
+  isTerminal  Boolean  @default(false)
+  slaHours    Int?
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leads  Lead[]
+
+  @@index([tenantId, pipelineId, orderIndex])
+  @@map("lead_stages")
+}
+
+model FieldDefinition {
+  id           String     @id @default(uuid()) @db.Uuid
+  tenantId     String     @db.Uuid
+  entity       EntityType
+  key          String
+  label        String
+  type         FieldType
+  isRequired   Boolean    @default(false)
+  isUnique     Boolean    @default(false)
+  defaultValue Json?
+  validation   Json?
+  options      Json?
+  formulaExpr  String?
+  orderIndex   Int        @default(0)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now()) @db.Timestamptz
+
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, entity, key])
+  @@index([tenantId, entity])
+  @@map("field_definitions")
+}
+
+model Lead {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @db.Uuid
+  pipelineId     String    @db.Uuid
+  stageId        String    @db.Uuid
+  ownerId        String?   @db.Uuid
+  title          String
+  source         String?
+  estimatedValue Int?
+  currency       String    @default("USD")
+  customValues   Json      @default("{}")
+  isStale        Boolean   @default(false)
+  lastActivityAt DateTime? @db.Timestamptz
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @db.Timestamptz
+
+  tenant       Organization   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stage        LeadStage      @relation(fields: [stageId], references: [id])
+  owner        User?          @relation("LeadOwner", fields: [ownerId], references: [id])
+  activities   Activity[]
+  notes        Note[]
+  stageHistory StageHistory[]
+  tasks        Task[]
+  quotes       Quote[]
+  invoices     Invoice[]
+
+  @@index([tenantId, stageId])
+  @@index([tenantId, ownerId])
+  @@map("leads")
+}
+
+model Activity {
+  id          String       @id @default(uuid()) @db.Uuid
+  tenantId    String       @db.Uuid
+  leadId      String       @db.Uuid
+  type        ActivityType
+  title       String
+  body        String?
+  metadata    Json?
+  createdById String?      @db.Uuid
+  createdAt   DateTime     @default(now()) @db.Timestamptz
+
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation("ActivityCreatedBy", fields: [createdById], references: [id])
+
+  @@index([tenantId, leadId, createdAt])
+  @@map("activities")
+}
+
+model Note {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  leadId      String   @db.Uuid
+  body        String
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation("NoteCreatedBy", fields: [createdById], references: [id])
+
+  @@index([tenantId, leadId, createdAt])
+  @@map("notes")
+}
+
+model StageHistory {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  leadId      String   @db.Uuid
+  fromStageId String?  @db.Uuid
+  toStageId   String   @db.Uuid
+  changedById String?  @db.Uuid
+  reason      String?
+  changedAt   DateTime @default(now()) @db.Timestamptz
+
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  changedBy User?        @relation("StageHistoryChangedBy", fields: [changedById], references: [id])
+
+  @@index([tenantId, leadId, changedAt])
+  @@map("stage_history")
+}
+
+model Task {
+  id          String       @id @default(uuid()) @db.Uuid
+  tenantId    String       @db.Uuid
+  leadId      String?      @db.Uuid
+  item        String
+  description String?
+  status      TaskStatus   @default(open)
+  priority    TaskPriority @default(medium)
+  source      String?
+  startDate   DateTime?    @db.Timestamptz
+  endDate     DateTime?    @db.Timestamptz
+  ecd         DateTime?    @db.Timestamptz
+  assigneeId  String?      @db.Uuid
+  createdById String?      @db.Uuid
+  completedAt DateTime?    @db.Timestamptz
+  createdAt   DateTime     @default(now()) @db.Timestamptz
+  updatedAt   DateTime     @updatedAt @db.Timestamptz
+
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignee  User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy User?        @relation("TaskCreatedBy", fields: [createdById], references: [id])
+
+  @@index([tenantId, status, ecd])
+  @@index([tenantId, assigneeId])
+  @@index([tenantId, leadId])
+  @@map("tasks")
+}
+
+model Account {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  name         String
+  domain       String?
+  industry     String?
+  website      String?
+  phone        String?
+  ownerId      String?  @db.Uuid
+  customValues Json     @default("{}")
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @updatedAt @db.Timestamptz
+
+  tenant   Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner    User?        @relation("AccountOwner", fields: [ownerId], references: [id])
+  contacts Contact[]
+  quotes   Quote[]
+  invoices Invoice[]
+  orders   Order[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("accounts")
+}
+
+model Contact {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  fullName     String
+  email        String?
+  phone        String?
+  jobTitle     String?
+  accountId    String?  @db.Uuid
+  ownerId      String?  @db.Uuid
+  customValues Json     @default("{}")
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @updatedAt @db.Timestamptz
+
+  tenant   Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account  Account?     @relation(fields: [accountId], references: [id])
+  owner    User?        @relation("ContactOwner", fields: [ownerId], references: [id])
+  quotes   Quote[]
+  invoices Invoice[]
+  orders   Order[]
+
+  @@index([tenantId])
+  @@index([tenantId, accountId])
+  @@map("contacts")
+}
+
+enum QuoteStatus {
+  draft
+  sent
+  accepted
+  rejected
+  expired
+  invoiced
+}
+
+enum InvoiceType {
+  invoice
+  proforma
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  overdue
+  cancelled
+  partial
+}
+
+model Quote {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenantId    String      @db.Uuid
+  number      String
+  /// Bumped every time a sent/accepted quote is edited; older versions live in QuoteRevision.
+  revision    Int         @default(1)
+  status      QuoteStatus @default(draft)
+  contactId   String?     @db.Uuid
+  accountId   String?     @db.Uuid
+  leadId      String?     @db.Uuid
+  ownerId     String?     @db.Uuid
+  issueDate   DateTime    @db.Date
+  expiryDate  DateTime?   @db.Date
+  currency    String      @default("USD") @db.VarChar(3)
+  subtotal    Decimal     @default(0) @db.Decimal(14, 2)
+  discountAmt Decimal     @default(0) @db.Decimal(14, 2)
+  taxAmt      Decimal     @default(0) @db.Decimal(14, 2)
+  total       Decimal     @default(0) @db.Decimal(14, 2)
+  notes       String?
+  terms       String?
+  createdAt   DateTime    @default(now()) @db.Timestamptz
+  updatedAt   DateTime    @updatedAt @db.Timestamptz
+
+  tenant    Organization    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contact   Contact?        @relation(fields: [contactId], references: [id])
+  account   Account?        @relation(fields: [accountId], references: [id])
+  lead      Lead?           @relation(fields: [leadId], references: [id])
+  owner     User?           @relation("QuoteOwner", fields: [ownerId], references: [id])
+  items     QuoteItem[]
+  invoices  Invoice[]
+  orders    Order[]
+  revisions QuoteRevision[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id          String  @id @default(uuid()) @db.Uuid
+  quoteId     String  @db.Uuid
+  description String
+  quantity    Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal @default(0) @db.Decimal(14, 2)
+  discount    Decimal @default(0) @db.Decimal(5, 2)
+  taxRate     Decimal @default(0) @db.Decimal(5, 2)
+  amount      Decimal @default(0) @db.Decimal(14, 2)
+  orderIndex  Int     @default(0)
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@map("quote_items")
+}
+
+model Invoice {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @db.Uuid
+  number      String
+  type        InvoiceType   @default(invoice)
+  status      InvoiceStatus @default(draft)
+  quoteId     String?       @db.Uuid
+  contactId   String?       @db.Uuid
+  accountId   String?       @db.Uuid
+  leadId      String?       @db.Uuid
+  ownerId     String?       @db.Uuid
+  issueDate   DateTime      @db.Date
+  dueDate     DateTime?     @db.Date
+  paidDate    DateTime?     @db.Date
+  currency    String        @default("USD") @db.VarChar(3)
+  subtotal    Decimal       @default(0) @db.Decimal(14, 2)
+  discountAmt Decimal       @default(0) @db.Decimal(14, 2)
+  taxAmt      Decimal       @default(0) @db.Decimal(14, 2)
+  total       Decimal       @default(0) @db.Decimal(14, 2)
+  amountPaid  Decimal       @default(0) @db.Decimal(14, 2)
+  notes       String?
+  terms       String?
+  createdAt   DateTime      @default(now()) @db.Timestamptz
+  updatedAt   DateTime      @updatedAt @db.Timestamptz
+
+  tenant  Organization  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote   Quote?        @relation(fields: [quoteId], references: [id])
+  contact Contact?      @relation(fields: [contactId], references: [id])
+  account Account?      @relation(fields: [accountId], references: [id])
+  lead    Lead?         @relation(fields: [leadId], references: [id])
+  owner   User?         @relation("InvoiceOwner", fields: [ownerId], references: [id])
+  items   InvoiceItem[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid()) @db.Uuid
+  invoiceId   String  @db.Uuid
+  description String
+  quantity    Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal @default(0) @db.Decimal(14, 2)
+  discount    Decimal @default(0) @db.Decimal(5, 2)
+  taxRate     Decimal @default(0) @db.Decimal(5, 2)
+  amount      Decimal @default(0) @db.Decimal(14, 2)
+  orderIndex  Int     @default(0)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FactoryFlow: Order Management, Production Lite, Audit log
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum OrderStatus {
+  draft
+  confirmed
+  in_production
+  ready
+  dispatched
+  closed
+  cancelled
+}
+
+model Order {
+  id           String      @id @default(uuid()) @db.Uuid
+  tenantId     String      @db.Uuid
+  number       String
+  status       OrderStatus @default(draft)
+  quoteId      String?     @db.Uuid
+  accountId    String?     @db.Uuid
+  contactId    String?     @db.Uuid
+  ownerId      String?     @db.Uuid
+  orderDate    DateTime    @db.Date
+  dueDate      DateTime?   @db.Date
+  dispatchedAt DateTime?   @db.Timestamptz
+  poReference  String?
+  currency     String      @default("USD") @db.VarChar(3)
+  total        Decimal     @default(0) @db.Decimal(14, 2)
+  notes        String?
+  createdAt    DateTime    @default(now()) @db.Timestamptz
+  updatedAt    DateTime    @updatedAt @db.Timestamptz
+
+  tenant  Organization         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote   Quote?               @relation(fields: [quoteId], references: [id])
+  account Account?             @relation(fields: [accountId], references: [id])
+  contact Contact?             @relation(fields: [contactId], references: [id])
+  owner   User?                @relation("OrderOwner", fields: [ownerId], references: [id])
+  items   OrderItem[]
+  history OrderStatusHistory[]
+  jobs    ProductionJob[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String  @id @default(uuid()) @db.Uuid
+  orderId     String  @db.Uuid
+  description String
+  quantity    Decimal @default(1) @db.Decimal(10, 2)
+  unit        String  @default("pcs")
+  unitPrice   Decimal @default(0) @db.Decimal(14, 2)
+  amount      Decimal @default(0) @db.Decimal(14, 2)
+  orderIndex  Int     @default(0)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id          String       @id @default(uuid()) @db.Uuid
+  tenantId    String       @db.Uuid
+  orderId     String       @db.Uuid
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  note        String?
+  changedById String?      @db.Uuid
+  changedAt   DateTime     @default(now()) @db.Timestamptz
+
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order     Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy User?        @relation("OrderStatusChangedBy", fields: [changedById], references: [id])
+
+  @@index([tenantId, orderId])
+  @@map("order_status_history")
+}
+
+enum JobStage {
+  planned
+  in_progress
+  paused
+  quality_check
+  completed
+  cancelled
+}
+
+model ProductionJob {
+  id            String       @id @default(uuid()) @db.Uuid
+  tenantId      String       @db.Uuid
+  number        String
+  title         String
+  orderId       String?      @db.Uuid
+  stage         JobStage     @default(planned)
+  priority      TaskPriority @default(medium)
+  assigneeId    String?      @db.Uuid
+  machineId     String?      @db.Uuid
+  targetQty     Decimal      @default(1) @db.Decimal(12, 2)
+  outputQty     Decimal      @default(0) @db.Decimal(12, 2)
+  rejectQty     Decimal      @default(0) @db.Decimal(12, 2)
+  unit          String       @default("pcs")
+  startDate     DateTime?    @db.Date
+  dueDate       DateTime?    @db.Date
+  completedAt   DateTime?    @db.Timestamptz
+  /// Production v1 has no BOM/Inventory: spec + free-text material notes.
+  specification String?
+  materialNotes String?
+  drawingUrl    String?
+  createdAt     DateTime     @default(now()) @db.Timestamptz
+  updatedAt     DateTime     @updatedAt @db.Timestamptz
+
+  tenant   Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order    Order?       @relation(fields: [orderId], references: [id])
+  assignee User?        @relation("JobAssignee", fields: [assigneeId], references: [id])
+  machine  Machine?     @relation(fields: [machineId], references: [id])
+  updates  JobUpdate[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, stage])
+  @@index([tenantId, orderId])
+  @@map("production_jobs")
+}
+
+model JobUpdate {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  jobId       String    @db.Uuid
+  fromStage   JobStage?
+  toStage     JobStage?
+  outputDelta Decimal   @default(0) @db.Decimal(12, 2)
+  rejectDelta Decimal   @default(0) @db.Decimal(12, 2)
+  note        String?
+  createdById String?   @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+
+  tenant    Organization  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  job       ProductionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdBy User?         @relation("JobUpdateBy", fields: [createdById], references: [id])
+
+  @@index([tenantId, jobId])
+  @@map("job_updates")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  entityType String
+  entityId   String?
+  summary    String
+  meta       Json     @default("{}")
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actor  User?        @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entityType, entityId])
+  @@map("audit_logs")
+}
+
+/// Snapshot of a quote before it was changed (v1, v2 ...). Never edited.
+model QuoteRevision {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  quoteId     String   @db.Uuid
+  revision    Int
+  snapshot    Json
+  total       Decimal  @db.Decimal(14, 2)
+  reason      String?
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  tenant    Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quote     Quote        @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation("QuoteRevisionBy", fields: [createdById], references: [id])
+
+  @@unique([quoteId, revision])
+  @@index([tenantId])
+  @@map("quote_revisions")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid
+  userId    String    @db.Uuid
+  type      String
+  title     String
+  body      String?
+  href      String?
+  readAt    DateTime? @db.Timestamptz
+  createdAt DateTime  @default(now()) @db.Timestamptz
+
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User         @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId, readAt])
+  @@map("notifications")
+}
+
+/// Files (drawings, POs, photos) attached to any record. Stored in Postgres; 5 MB limit per file.
+model Attachment {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  entityType   String
+  entityId     String   @db.Uuid
+  fileName     String
+  mimeType     String
+  size         Int
+  data         Bytes
+  uploadedById String?  @db.Uuid
+  createdAt    DateTime @default(now()) @db.Timestamptz
+
+  tenant     Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploadedBy User?        @relation("AttachmentUploader", fields: [uploadedById], references: [id])
+
+  @@index([tenantId, entityType, entityId])
+  @@map("attachments")
+}
+
+/// Item master: what the factory sells / makes. Picked in quotations and orders.
+model Product {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @db.Uuid
+  code        String
+  name        String
+  description String?
+  category    String?
+  unit        String   @default("pcs")
+  hsnCode     String?
+  gstRate     Decimal  @default(18) @db.Decimal(5, 2)
+  price       Decimal  @default(0) @db.Decimal(14, 2)
+  material    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId, isActive])
+  @@map("products")
+}
+
+/// Machines / work centres production jobs run on.
+model Machine {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid
+  code      String
+  name      String
+  type      String?
+  location  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  tenant Organization    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  jobs   ProductionJob[]
+
+  @@unique([tenantId, code])
+  @@map("machines")
+}
+
+/// Simple pick-lists: units, materials, GST rates, payment and delivery terms.
+model MasterValue {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @db.Uuid
+  kind       String
+  value      String
+  label      String
+  isDefault  Boolean  @default(false)
+  orderIndex Int      @default(0)
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, kind, value])
+  @@index([tenantId, kind])
+  @@map("master_values")
+}
