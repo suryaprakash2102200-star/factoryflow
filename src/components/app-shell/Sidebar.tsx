@@ -48,7 +48,7 @@ export function Sidebar({
       >
         {/* Brand */}
         <div className={`flex h-14 shrink-0 items-center gap-2.5 px-4 ${collapsed ? "md:justify-center md:px-0" : ""}`}>
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-foreground text-[13px] font-bold text-background">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 text-[13px] font-bold text-white">
             F
           </div>
           <span className={`text-[15px] font-semibold tracking-tight text-foreground ${collapsed ? "md:hidden" : ""}`}>
@@ -150,8 +150,35 @@ function SidebarLink({
           : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
       } ${collapsed ? "md:justify-center md:px-0" : ""}`}
     >
-      <Icon size={17} strokeWidth={1.75} className="shrink-0" />
+      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${iconTone(item.href)}`}>
+        <Icon size={15} strokeWidth={2} />
+      </span>
       <span className={collapsed ? "md:hidden" : ""}>{item.label}</span>
     </Link>
   );
+}
+
+/** Each menu entry gets its own colour so the list is easy to scan. */
+const TONES: Record<string, string> = {
+  "/": "bg-violet-500/15 text-violet-500",
+  "/leads": "bg-sky-500/15 text-sky-500",
+  "/contacts": "bg-pink-500/15 text-pink-500",
+  "/accounts": "bg-emerald-500/15 text-emerald-500",
+  "/reports": "bg-amber-500/15 text-amber-500",
+  "/billing/quotes": "bg-indigo-500/15 text-indigo-500",
+  "/orders": "bg-orange-500/15 text-orange-500",
+  "/production": "bg-teal-500/15 text-teal-500",
+  "/action-tracker": "bg-lime-500/15 text-lime-600",
+  "/billing/invoices": "bg-rose-500/15 text-rose-500",
+  "/admin/users": "bg-cyan-500/15 text-cyan-500",
+  "/admin/roles": "bg-fuchsia-500/15 text-fuchsia-500",
+  "/admin/stages": "bg-yellow-500/15 text-yellow-600",
+  "/admin/fields": "bg-blue-500/15 text-blue-500",
+  "/admin/masters": "bg-green-500/15 text-green-500",
+  "/admin/modules": "bg-purple-500/15 text-purple-500",
+  "/admin/tenant": "bg-slate-500/15 text-slate-500",
+  "/admin/audit": "bg-red-500/15 text-red-500",
+};
+function iconTone(href: string) {
+  return TONES[href] ?? "bg-violet-500/15 text-violet-500";
 }

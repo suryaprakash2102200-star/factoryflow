@@ -37,11 +37,11 @@ export default async function LoginPage({
 
   return (
     <div>
-      <h1 className="mb-2 text-center text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-        Hi there 👋
+      <h1 className="mb-3 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+        Run your factory, end to end
       </h1>
       <p className="mb-8 text-center text-sm text-slate-500">
-        Welcome back to FactoryFlow
+        Track enquiries, send quotes and follow every job to dispatch — all in one place.
       </p>
 
       {sp.error && (
@@ -104,7 +104,7 @@ export default async function LoginPage({
           type="submit"
           className="mt-3 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-700"
         >
-          Login
+          Sign in →
         </button>
       </form>
 

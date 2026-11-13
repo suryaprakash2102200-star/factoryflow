@@ -154,6 +154,33 @@
   --color-sky-50: rgb(14 165 233 / 0.10);     --color-sky-100: rgb(14 165 233 / 0.18);
 }
 
+/* Deep coloured text (600–900) is unreadable on dark surfaces; lift it. */
+.dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800, .dark .text-blue-900 { color: #93c5fd; }
+.dark .text-indigo-600, .dark .text-indigo-700, .dark .text-indigo-800 { color: #a5b4fc; }
+.dark .text-violet-600, .dark .text-violet-700, .dark .text-violet-800 { color: #c4b5fd; }
+.dark .text-purple-600, .dark .text-purple-700 { color: #d8b4fe; }
+.dark .text-emerald-600, .dark .text-emerald-700, .dark .text-emerald-800, .dark .text-emerald-900 { color: #6ee7b7; }
+.dark .text-green-600, .dark .text-green-700 { color: #86efac; }
+.dark .text-amber-600, .dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900 { color: #fcd34d; }
+.dark .text-orange-600, .dark .text-orange-700 { color: #fdba74; }
+.dark .text-rose-600, .dark .text-rose-700, .dark .text-rose-800 { color: #fda4af; }
+.dark .text-red-600, .dark .text-red-700 { color: #fca5a5; }
+.dark .text-cyan-600, .dark .text-cyan-700 { color: #67e8f9; }
+.dark .text-sky-600, .dark .text-sky-700 { color: #7dd3fc; }
+.dark .text-black, .dark .text-gray-900, .dark .text-gray-800, .dark .text-gray-700 { color: var(--foreground); }
+.dark input, .dark select, .dark textarea { color: var(--foreground); }
+.dark option { background: var(--card); color: var(--foreground); }
+
+/* Login / signup screen (dark card from the design). */
+.auth-shell h1 { font-family: Georgia, "Times New Roman", serif; text-align: left; color: #fff; }
+.auth-shell p { text-align: left; }
+.auth-shell input { background: transparent !important; border-color: rgb(255 255 255 / 0.35) !important; color: #fff; }
+.auth-shell input:focus { border-color: #a78bfa !important; --tw-ring-color: rgb(167 139 250 / 0.3); }
+.auth-shell .bg-blue-600 { background: #c4b5fd; color: #1e1b4b; box-shadow: none; }
+.auth-shell .bg-blue-600:hover { background: #ddd6fe; }
+.auth-shell .text-blue-500 { color: #c4b5fd; }
+.auth-shell button.bg-white { background: transparent; border-color: rgb(255 255 255 / 0.35); color: #fff; }
+
 /* White surfaces -> card surfaces in dark mode (text-white is left alone). */
 .dark .bg-white,
 .dark .hover\:bg-white:hover { background-color: var(--card); }
