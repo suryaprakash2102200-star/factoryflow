@@ -10,9 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <HeroCarousel />
           <div className="absolute inset-0 flex flex-col justify-between p-8 text-white">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold tracking-wide">
-                Selected Works
-              </div>
+              <div className="text-sm font-semibold tracking-wide">FactoryFlow</div>
               <div className="flex items-center gap-2">
                 <Link
                   href="/signup"
@@ -32,16 +30,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-end justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-sm font-bold">
-                  N
+                  F
                 </div>
                 <div>
-                  <div className="text-sm font-semibold">Kairo</div>
-                  <div className="text-xs text-white/70">CRM &amp; Workflow</div>
+                  <div className="text-sm font-semibold">FactoryFlow</div>
+                  <div className="text-xs text-white/70">Enquiry to dispatch, in one place</div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <ArrowButton dir="left" />
-                <ArrowButton dir="right" />
               </div>
             </div>
           </div>
@@ -51,7 +45,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <section className="scrollbar-hide relative flex h-full w-full flex-col overflow-y-auto px-6 py-6 sm:px-12 sm:py-8 lg:w-[55%]">
           <div className="flex items-center justify-between">
             <div className="text-lg font-bold tracking-widest text-slate-900">
-              KAIRO<span className="text-blue-500">CRM</span>
+              FACTORY<span className="text-blue-500">FLOW</span>
             </div>
             <button
               type="button"
@@ -87,76 +81,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   );
 }
 
-function HeroArt() {
-  return (
-    <div
-      className="absolute inset-0"
-      style={{
-        background:
-          "radial-gradient(ellipse at 20% 30%, #f97316 0%, #9a3412 22%, #1e1b4b 55%, #020617 85%)",
-      }}
-    >
-      {/* Stars */}
-      <div
-        className="absolute inset-0 opacity-70"
-        style={{
-          backgroundImage:
-            "radial-gradient(1px 1px at 20% 15%, white, transparent), radial-gradient(1px 1px at 80% 20%, white, transparent), radial-gradient(1px 1px at 45% 10%, white, transparent), radial-gradient(1px 1px at 70% 35%, white, transparent), radial-gradient(1px 1px at 10% 45%, white, transparent), radial-gradient(1.5px 1.5px at 90% 60%, white, transparent)",
-          backgroundSize: "400px 400px",
-        }}
-      />
-      {/* Moon */}
-      <div
-        className="absolute h-14 w-14 rounded-full"
-        style={{
-          top: "18%",
-          right: "22%",
-          background:
-            "radial-gradient(circle at 35% 35%, #f1f5f9 0%, #cbd5e1 55%, #475569 100%)",
-          boxShadow: "0 0 40px rgba(251, 191, 36, 0.25)",
-        }}
-      />
-      {/* Mountain silhouettes */}
-      <svg
-        className="absolute bottom-0 left-0 right-0"
-        viewBox="0 0 500 260"
-        preserveAspectRatio="none"
-        style={{ width: "100%", height: "55%" }}
-      >
-        <defs>
-          <linearGradient id="m1" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#451a03" />
-            <stop offset="100%" stopColor="#0c0a09" />
-          </linearGradient>
-          <linearGradient id="m2" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#78350f" />
-            <stop offset="100%" stopColor="#1c1917" />
-          </linearGradient>
-        </defs>
-        <path d="M0,180 L70,90 L120,140 L180,60 L240,130 L300,80 L370,150 L440,70 L500,130 L500,260 L0,260 Z" fill="url(#m2)" opacity="0.9" />
-        <path d="M0,220 L60,160 L140,200 L210,140 L280,190 L360,150 L420,200 L500,170 L500,260 L0,260 Z" fill="url(#m1)" />
-      </svg>
-    </div>
-  );
-}
 
-function ArrowButton({ dir }: { dir: "left" | "right" }) {
-  return (
-    <button
-      type="button"
-      aria-label={`${dir === "left" ? "Previous" : "Next"} slide`}
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-white/40 text-white/80 transition hover:bg-white/10 hover:text-white"
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        {dir === "left" ? (
-          <polyline points="15 18 9 12 15 6" />
-        ) : (
-          <polyline points="9 18 15 12 9 6" />
-        )}
-      </svg>
-    </button>
-  );
-}
 
 function SocialIcon({
   children,

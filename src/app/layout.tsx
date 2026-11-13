@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kairo CRM",
+  title: "FactoryFlow",
   description: "Multi-tenant, metadata-driven CRM",
 };
 

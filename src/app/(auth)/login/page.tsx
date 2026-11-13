@@ -29,20 +29,30 @@ export default async function LoginPage({
     }
   }
 
+  async function loginWithGoogle() {
+    "use server";
+    await signIn("google", { redirectTo: sp.next ?? "/" });
+  }
+  const googleOn = !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
+
   return (
     <div>
       <h1 className="mb-2 text-center text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
         Hi there 👋
       </h1>
       <p className="mb-8 text-center text-sm text-slate-500">
-        Welcome back to Kairo CRM
+        Welcome back to FactoryFlow
       </p>
 
       {sp.error && (
         <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {sp.error === "CredentialsSignin"
             ? "Invalid email or password."
-            : "Sign-in failed. Try again."}
+            : sp.error === "NoAccount" || sp.error === "AccessDenied"
+              ? "No account uses that Google email. Ask your workspace owner to add you under Setup → Users, then try again."
+              : sp.error === "GoogleEmail"
+                ? "Google didn’t confirm that email address."
+                : "Sign-in failed. Try again."}
         </div>
       )}
 
@@ -79,10 +89,12 @@ export default async function LoginPage({
         </div>
 
         <button
-          type="button"
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-          disabled
-          title="Coming soon"
+          type="submit"
+          formAction={loginWithGoogle}
+          formNoValidate
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!googleOn}
+          title={googleOn ? undefined : "Google sign-in isn't set up yet"}
         >
           <GoogleIcon />
           Login with Google

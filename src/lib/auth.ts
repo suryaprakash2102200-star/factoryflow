@@ -1,6 +1,7 @@
 import NextAuth, { type DefaultSession } from "next-auth";
 import { withTenant } from "@/lib/tenant-context";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "./prisma";
@@ -80,9 +81,26 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         };
       },
     }),
+    // Google sign-in is only offered when AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET are set.
+    ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET ? [Google] : []),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    /** Google can only sign in people who already have an active user (same email) in a workspace. */
+    async signIn({ account, profile }) {
+      if (account?.provider !== "google") return true;
+      if (!profile?.email || profile.email_verified === false) return "/login?error=GoogleEmail";
+      const u = await prisma.user.findFirst({ where: { email: { equals: profile.email, mode: "insensitive" }, isActive: true }, select: { id: true } });
+      return u ? true : "/login?error=NoAccount";
+    },
+    async jwt({ token, user, account }) {
+      if (user && account?.provider === "google") {
+        const u = await prisma.user.findFirst({
+          where: { email: { equals: user.email ?? "", mode: "insensitive" }, isActive: true },
+          include: { tenant: true },
+        });
+        if (!u) return null;
+        Object.assign(user, { id: u.id, tenantId: u.tenantId, tenantName: u.tenant.name, role: u.role, roleId: u.roleId, name: u.fullName, email: u.email });
+      }
       if (user) {
         token.id = (user as { id: string }).id;
         token.tenantId = (user as { tenantId: string }).tenantId;

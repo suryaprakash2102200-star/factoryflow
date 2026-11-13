@@ -113,7 +113,7 @@ export default async function SignupPage({
         Hello there ✨
       </h1>
       <p className="mb-8 text-center text-sm text-slate-500">
-        Create your Kairo workspace
+        Create your FactoryFlow workspace
       </p>
 
       {errorMsg && (
