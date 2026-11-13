@@ -47,6 +47,8 @@ async function resolvePermissions(
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
+  // Use the host the request came in on (Vercel, custom domain) instead of a fixed URL.
+  trustHost: true,
   pages: { signIn: "/login" },
   providers: [
     Credentials({
