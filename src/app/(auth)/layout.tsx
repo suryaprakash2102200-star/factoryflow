@@ -4,10 +4,10 @@ import Link from "next/link";
 /* Login / signup always use the dark look from the design, whatever the app theme. */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dark auth-shell fixed inset-0 flex items-center justify-center overflow-hidden bg-[#ece8f8] p-3 sm:p-6">
-      <div className="relative mx-auto flex h-full max-h-[860px] w-full max-w-6xl overflow-hidden rounded-[28px] bg-[#111113] text-white shadow-2xl">
+    <div className="dark auth-shell fixed inset-0 overflow-hidden bg-[#111113]">
+      <div className="relative flex h-full w-full overflow-hidden bg-[#111113] text-white">
         {/* Form side */}
-        <section className="scrollbar-hide relative flex h-full w-full flex-col overflow-y-auto px-6 py-6 sm:px-12 sm:py-8 lg:w-[44%]">
+        <section className="scrollbar-hide relative flex h-full w-full flex-col overflow-y-auto px-6 py-6 sm:px-16 sm:py-10 lg:w-[42%]">
           <div className="flex items-center gap-8">
             <Link href="/login" className="flex items-center gap-2 text-lg font-semibold">
               <Spark />
@@ -25,7 +25,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Illustration side */}
         <aside className="relative hidden flex-1 items-center justify-center lg:flex">
-          <Image src="/login-hero.png" alt="" width={1536} height={1024} priority className="h-auto w-full max-w-[720px] object-contain" />
+          <Image src="/login-hero.png" alt="" width={1536} height={1024} priority className="h-auto w-full max-w-[900px] object-contain" />
         </aside>
       </div>
     </div>

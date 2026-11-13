@@ -48,7 +48,7 @@ export function Sidebar({
       >
         {/* Brand */}
         <div className={`flex h-14 shrink-0 items-center gap-2.5 px-4 ${collapsed ? "md:justify-center md:px-0" : ""}`}>
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500 text-[13px] font-bold text-white">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-violet-500 text-[13px] font-bold text-white">
             F
           </div>
           <span className={`text-[15px] font-semibold tracking-tight text-foreground ${collapsed ? "md:hidden" : ""}`}>
