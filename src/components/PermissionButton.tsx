@@ -44,6 +44,15 @@ export function PermissionButton(props: AnchorProps | ButtonProps) {
   if (!permissions.includes(required)) return null;
   const cls = `inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition ${VARIANTS[variant]} ${className}`;
   if ("href" in rest && rest.href) {
+    // File downloads (/api/...) must be plain links: Next's <Link> would
+    // prefetch/render them as pages, which 500s and shows "page not found".
+    if (rest.href.startsWith("/api/")) {
+      return (
+        <a title={title} className={cls} {...(rest as Omit<AnchorProps, keyof BaseProps>)}>
+          {children}
+        </a>
+      );
+    }
     return (
       <Link
         title={title}
