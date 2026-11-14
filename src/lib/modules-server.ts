@@ -1,13 +1,14 @@
 import { cache } from "react";
-import { prisma } from "./prisma";
+import { withTenant } from "./tenant-context";
 import { DEFAULT_MODULES, moduleEnabled, type ModuleKey } from "./modules";
 
 /** Modules activated for a workspace (cached per request). */
 export const getEnabledModules = cache(async (tenantId: string): Promise<string[]> => {
-  const org = await prisma.organization.findUnique({
-    where: { id: tenantId },
-    select: { enabledModules: true },
-  });
+  // Must run inside the tenant context: row-level security hides the
+  // organization row otherwise, and every module would look switched off.
+  const org = await withTenant(tenantId, (tx) =>
+    tx.organization.findUnique({ where: { id: tenantId }, select: { enabledModules: true } }),
+  );
   return org?.enabledModules ?? [...DEFAULT_MODULES];
 });
 

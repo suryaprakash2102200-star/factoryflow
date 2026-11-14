@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { withTenant } from "@/lib/tenant-context";
 import { updateTenantAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -9,9 +9,9 @@ export default async function TenantPage() {
   if (!ctx.permissions.includes("tenant:view")) {
     return <div className="text-sm text-slate-500">No access.</div>;
   }
-  const org = await prisma.organization.findUniqueOrThrow({
-    where: { id: ctx.tenantId },
-  });
+  const org = await withTenant(ctx.tenantId, (tx) =>
+    tx.organization.findUniqueOrThrow({ where: { id: ctx.tenantId } }),
+  );
   const canEdit = ctx.permissions.includes("tenant:edit");
 
   async function save(formData: FormData) {

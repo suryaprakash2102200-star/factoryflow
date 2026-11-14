@@ -5,7 +5,6 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { requireAuth, hasPerm } from "@/lib/auth";
 import { withTenant } from "@/lib/tenant-context";
-import { prisma } from "@/lib/prisma";
 import {
   ACTIONS,
   RESOURCES,
@@ -159,9 +158,8 @@ export async function updateTenantAction(
   const ctx = await requireAuth();
   ensure(ctx, "tenant:edit");
   const data = UpdateTenantSchema.parse(input);
-  await prisma.organization.update({
-    where: { id: ctx.tenantId },
-    data: { name: data.name },
-  });
+  await withTenant(ctx.tenantId, (tx) =>
+    tx.organization.update({ where: { id: ctx.tenantId }, data: { name: data.name } }),
+  );
   revalidatePath("/admin/tenant");
 }
